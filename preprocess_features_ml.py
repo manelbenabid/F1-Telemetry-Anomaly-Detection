@@ -1,7 +1,7 @@
 import os, yaml
 import numpy as np
 import pandas as pd
-from utils_ml import resample_uniform_time, sectorize_equal_distance, build_features, sectorwise_zscore
+from utils_ml import resample_uniform_time, sectorize_per_lap, build_features, sectorwise_zscore
 
 CFG = yaml.safe_load(open("config.yaml"))
 SEASON, SESSION, DRIVER = CFG["season"], CFG["session"], CFG["driver"]
@@ -24,7 +24,7 @@ for ev in EVENTS:
             continue
         # resample, sectorize (based on Distance before resample for boundaries)
         g = g.sort_values("Time")
-        g_sec = sectorize_equal_distance(g, n_sectors=3)
+        g_sec = sectorize_per_lap(g, n_sectors=3)
         uni = resample_uniform_time(g_sec, dt=DT, cols=[c for c in ["Speed","RPM","Throttle","Brake","Gear","DRS","ERSDeployMode"] if c in g_sec.columns])
         # reattach sector via nearest merge on time grid
         tmp = pd.merge_asof(uni.sort_values("t_s"), g_sec[["Time","Distance","SectorID"]].assign(t_s=g_sec["Time"].dt.total_seconds()).sort_values("t_s"),
