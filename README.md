@@ -44,7 +44,7 @@ F1-Telemetry-Anomaly-Detection/
 
 ### **1. Clone the Repository**
 ```bash
-git clone https://github.com/<your-username>/F1-Telemetry-Anomaly-Detection.git
+git clone https://github.com/manelbenabid/F1-Telemetry-Anomaly-Detection.git
 cd F1-Telemetry-Anomaly-Detection
 ```
 
