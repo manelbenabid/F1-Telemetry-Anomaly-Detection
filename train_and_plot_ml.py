@@ -92,6 +92,12 @@ for ev in EVENTS:
                          inj2.assign(Variant="THROTTLE_LAG")], ignore_index=True)
     X_inj = inj_all[[f for f in FEATURES if f in inj_all.columns]].fillna(0.0).values
     inj_all["IF_score"] = -iso.score_samples(X_inj)
+    
+    cols_keep = [c for c in ["t_s","LapNumber","SectorID","Speed","Throttle01","RPM","IF_score"] if c in df_ev.columns]
+    df_ev[cols_keep].to_parquet(os.path.join(evd, f"{DRIVER}_if_timeseries_test.parquet"))
+    
+    cols_keep_inj = [c for c in ["t_s","LapNumber","SectorID","Speed","Throttle01","RPM","IF_score","Variant"] if c in inj_all.columns]
+    inj_all[cols_keep_inj].to_parquet(os.path.join(evd, f"{DRIVER}_if_timeseries_injected.parquet"))
 
     agg_scores(inj_all).to_csv(os.path.join(evd, f"{DRIVER}_if_scores_injected.csv"), index=False)
 
