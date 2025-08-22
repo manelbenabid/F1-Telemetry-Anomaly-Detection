@@ -1,0 +1,10 @@
+season: 2024
+session: R
+driver: VER
+events:
+  - British Grand Prix
+  - Spanish Grand Prix
+  - Italian Grand Prix
+cache_dir: f1_cache
+out_dir: outputs
+show_block_at_end: true
