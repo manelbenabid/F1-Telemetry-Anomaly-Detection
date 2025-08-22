@@ -143,4 +143,4 @@ if lap_pick is not None and {"t_s","Speed","IF_score"}.issubset(df_test.columns)
 for p in paths_to_open:
     open_file(p)
 
-print("✅ train_and_plot_ml.py finished — plots saved and opened in your image viewer.")
+print("train_and_plot_ml.py finished — plots saved and opened in your image viewer.")
