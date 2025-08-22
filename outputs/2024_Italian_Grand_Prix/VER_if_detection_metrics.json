@@ -1,0 +1,8 @@
+{
+  "event": "Italian Grand Prix",
+  "driver": "VER",
+  "baseline_event": "British Grand Prix",
+  "baseline_if_98pct": 0.5919143391529056,
+  "injected_rows": 121152,
+  "hit_rate_pct_vs_baseline98": 1.8059957739038563
+}
