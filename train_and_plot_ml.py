@@ -1,6 +1,11 @@
 import os, yaml, warnings
 import numpy as np
 import pandas as pd
+if os.getenv("F1_NO_GUI", "0") == "1":
+    import matplotlib
+    matplotlib.use("Agg")  # no GUI windows
+
+import matplotlib.pyplot as plt
 import matplotlib.pyplot as plt
 from sklearn.ensemble import IsolationForest
 
