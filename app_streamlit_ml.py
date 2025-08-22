@@ -132,29 +132,56 @@ with tab_trend:
 
 with tab_lap:
     st.subheader("Interactive lap trace (Speed/Throttle colored by IF) — VER")
-    # Optional time-series support if you saved parquet files in train_and_plot_ml.py
-    ts_test_p = os.path.join(ev_dir(event), "VER_if_timeseries_test.parquet")
-    ts_inj_p  = os.path.join(ev_dir(event), "VER_if_timeseries_injected.parquet")
-    ts_test = pd.read_parquet(ts_test_p) if os.path.exists(ts_test_p) else None
-    ts_inj  = pd.read_parquet(ts_inj_p)  if os.path.exists(ts_inj_p)  else None
-
+    ts_test = load_pq(P["ts_test"]); ts_inj = load_pq(P["ts_inj"])
     if ts_test is None or ts_inj is None:
-        st.info("Time-series parquet files not found for VER. Re-run train_and_plot_ml.py after enabling parquet saves.")
+        st.info("Time-series files not found. Re-run train_and_plot_ml.py after enabling parquet saves.")
     else:
         laps = sorted(pd.unique(ts_test["LapNumber"].dropna()))
         if laps:
             lap = st.select_slider("Lap (test) — VER", options=laps, value=laps[0])
+
+            # Choose injected variant
+            all_variants = ["All variants"]
+            if "Variant" in ts_inj.columns and not ts_inj["Variant"].dropna().empty:
+                all_variants += sorted(ts_inj["Variant"].dropna().unique().tolist())
+            variant_pick = st.selectbox("Injected variant", all_variants, index=0)
+
             c1, c2 = st.columns(2)
-            for label, df, col in [("Test", ts_test, RB_BLUE), ("Injected", ts_inj, RB_RED)]:
-                sub = df[df["LapNumber"] == lap]
-                if sub.empty: continue
-                fig = px.scatter(
-                    sub, x="t_s", y="Speed", color="IF_score", color_continuous_scale="Turbo",
-                    title=f"{label}: Speed vs time (colored by IF) — VER", template="plotly_dark"
+
+            # TEST trace (clean)
+            sub_t = ts_test[ts_test["LapNumber"] == lap].sort_values("t_s")
+            fig_t = px.scatter(
+                sub_t, x="t_s", y="Speed", color="IF_score",
+                color_continuous_scale="Turbo", template="plotly_dark",
+                title="Test: Speed vs time (colored by IF) — VER"
+            )
+            fig_t.update_traces(mode="lines+markers", marker=dict(size=4))
+            c1.plotly_chart(fig_t, use_container_width=True)
+
+            # INJECTED trace (choose variant or show all as markers)
+            sub_i = ts_inj[ts_inj["LapNumber"] == lap].copy()
+            if variant_pick != "All variants":
+                sub_i = sub_i[sub_i["Variant"] == variant_pick].sort_values("t_s")
+                fig_i = px.scatter(
+                    sub_i, x="t_s", y="Speed", color="IF_score",
+                    color_continuous_scale="Turbo", template="plotly_dark",
+                    title=f"Injected ({variant_pick}): Speed vs time — VER"
                 )
-                fig.update_traces(mode="lines+markers", marker=dict(size=4))
-                (c1 if label=="Test" else c2).plotly_chart(fig, use_container_width=True)
-            if "Throttle01" in ts_test.columns:
-                sub = ts_test[ts_test["LapNumber"] == lap]
-                fig = px.line(sub, x="t_s", y="Throttle01", title="Throttle (0–1) — VER", template="plotly_dark")
-                st.plotly_chart(fig, use_container_width=True)
+                fig_i.update_traces(mode="lines+markers", marker=dict(size=4))
+            else:
+                # avoid lines connecting different variants
+                fig_i = px.scatter(
+                    sub_i.sort_values(["Variant","t_s"]),
+                    x="t_s", y="Speed", color="Variant",
+                    template="plotly_dark",
+                    title="Injected (all variants): Speed vs time — VER"
+                )
+                fig_i.update_traces(mode="markers", marker=dict(size=4))
+
+            c2.plotly_chart(fig_i, use_container_width=True)
+
+            # Optional throttle overlay (test)
+            if "Throttle01" in sub_t.columns:
+                fig_th = px.line(sub_t, x="t_s", y="Throttle01",
+                                 template="plotly_dark", title="Throttle (0–1) — VER (Test)")
+                st.plotly_chart(fig_th, use_container_width=True)
