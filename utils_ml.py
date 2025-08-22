@@ -77,7 +77,7 @@ def inject_faults(df, fault="MGUK_DROP", magnitude=0.10, lag_seconds=0.2, sector
         # shift throttle forward (response delayed)
         dt = np.median(np.diff(sim["t_s"].values)) if len(sim) > 1 else 0.05
         shift = max(1, int(round(lag_seconds / max(dt, 1e-3))))
-        sim["Throttle01"] = sim["Throttle01"].shift(shift).fillna(method="bfill")
+        sim["Throttle01"] = sim["Throttle01"].shift(shift).bfill()   
 
     elif fault == "ERS_UNDERDELIVERY" and {"Speed","Accel"}.issubset(sim.columns):
         sim.loc[mask, "Accel"] = sim.loc[mask, "Accel"] * (1.0 - magnitude)
