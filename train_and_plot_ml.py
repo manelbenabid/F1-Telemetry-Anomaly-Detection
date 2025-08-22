@@ -8,8 +8,8 @@ from sklearn.ensemble import IsolationForest
 
 from utils_ml import (
     inject_faults,
-    make_injected_dataset,     # <-- richer injected set
-    build_features,            # <-- to recompute features after injection
+    make_injected_dataset,     # richer injected set
+    build_features,            # recompute features after injection
 )
 
 # ---------- Config ----------
@@ -48,29 +48,32 @@ def agg_scores(df: pd.DataFrame) -> pd.DataFrame:
     g = df.groupby(["LapNumber","SectorID"], dropna=False)["IF_score"].mean().reset_index()
     return g.rename(columns={"IF_score":"IF_sector_mean"})
 
-def ref_zscore_inplace(target: pd.DataFrame, ref: pd.DataFrame, features_z: list, by="SectorID"):
+def refit_zscores_against_ref(target: pd.DataFrame, ref: pd.DataFrame, features_z: list, by: str = "SectorID") -> pd.DataFrame:
     """
-    For each *_z feature in features_z, recompute z-score on `target`
-    using mean/std computed from `ref` grouped by `by`.
-    Assumes the base (non-z) feature exists in both frames, e.g., Speed for Speed_z,
-    Speed_rollmean for Speed_rollmean_z, etc.
+    Return a copy of `target` where each *_z in features_z is recomputed using means/stds
+    from `ref` grouped by `by`. Expects the corresponding base feature (e.g., Speed for Speed_z)
+    to exist in BOTH frames.
     """
-    if by not in target.columns or by not in ref.columns:
-        return
+    out = target.copy()
+    if by not in out.columns or by not in ref.columns:
+        return out
+
     for fz in features_z:
         if not fz.endswith("_z"):
             continue
         base = fz[:-2]
-        if base not in target.columns or base not in ref.columns:
+        if base not in out.columns or base not in ref.columns:
             continue
-        stats = ref.groupby(by)[base].agg(mu="mean", sd="std").reset_index()
-        stats.rename(columns={"mu": f"{base}__mu_ref", "sd": f"{base}__sd_ref"}, inplace=True)
-        target.merge(stats, on=by, how="left", copy=False)
-        mu = target[f"{base}__mu_ref"]
-        sd = target[f"{base}__sd_ref"].replace(0, np.nan)
-        target[fz] = (target[base] - mu) / sd
-        # clean up helper cols to avoid bloat
-        target.drop(columns=[f"{base}__mu_ref", f"{base}__sd_ref"], inplace=True)
+
+        stats = ref.groupby(by)[base].agg(mu="mean", sd="std")
+        mu_map = stats["mu"].to_dict()
+        sd_map = stats["sd"].replace(0, np.nan).to_dict()
+
+        mu = out[by].map(mu_map)
+        sd = out[by].map(sd_map)
+        out[fz] = (out[base] - mu) / sd
+
+    return out
 
 if not EVENTS:
     raise SystemExit("No events in config.yaml")
@@ -107,14 +110,13 @@ for ev in EVENTS:
     # Save TEST event scores (for dashboard)
     agg_scores(df_ev).to_csv(os.path.join(evd, f"{DRIVER}_if_scores_test.csv"), index=False)
 
-    # 2b) Build a RICH injected dataset for this event
-    #     (don’t inject into the baseline training set; this is post-training eval only)
+    # 2b) Build a RICH injected dataset for this event (evaluation only)
     inj_all = make_injected_dataset(
         df_ev,
-        n_laps=12,                               # inject across more laps for a decent sample
+        n_laps=12,
         faults=("MGUK_DROP","THROTTLE_LAG"),
-        magnitudes=(0.05, 0.10, 0.15),          # 5/10/15% drop variants
-        lags=(0.1, 0.2, 0.3),                   # 0.1/0.2/0.3s lag variants
+        magnitudes=(0.05, 0.10, 0.15),
+        lags=(0.1, 0.2, 0.3),
         sector_strategy="random",
         random_state=42
     )
@@ -124,12 +126,10 @@ for ev in EVENTS:
         continue
 
     # 2c) Recompute features AFTER injection so changes matter
-    #     (build_features will recompute Accel, dThrottle_dt, rolling stats, etc.)
     inj_all = build_features(inj_all)
 
     # 2d) Recompute *_z features on injected data using TEST event as reference
-    #     (so we standardize with the same sector means/stds used for df_ev)
-    ref_zscore_inplace(inj_all, df_ev, FEATURES, by="SectorID")
+    inj_all = refit_zscores_against_ref(inj_all, df_ev, FEATURES, by="SectorID")
 
     # 2e) Score injected with the trained Isolation Forest
     X_inj = inj_all[FEATURES].fillna(0.0).values
