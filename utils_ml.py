@@ -29,6 +29,32 @@ def sectorize_equal_distance(df, n_sectors=3):
     inds = np.digitize(df["Distance"].values, bounds[1:-1], right=False)
     return df.assign(SectorID=inds)
 
+
+def sectorize_per_lap(df: pd.DataFrame, n_sectors: int = 3) -> pd.DataFrame:
+    """
+    Label sectors 1..n per *lap* using Distance within that lap.
+    Requires columns: LapNumber, Distance.
+    """
+    if not {"LapNumber", "Distance"}.issubset(df.columns):
+        return df.assign(SectorID=1)
+
+    out = []
+    for lap, g in df.groupby("LapNumber", sort=True):
+        g = g.sort_values("Distance")
+        dmin, dmax = float(g["Distance"].min()), float(g["Distance"].max())
+        if not np.isfinite(dmax - dmin) or (dmax <= dmin):
+            g["SectorID"] = 1
+        else:
+            frac = (g["Distance"] - dmin) / (dmax - dmin)
+            g["SectorID"] = pd.cut(
+                frac,
+                bins=np.linspace(0, 1, n_sectors + 1),
+                labels=range(1, n_sectors + 1),  # -> 1,2,3
+                include_lowest=True
+            ).astype(int)
+        out.append(g)
+    return pd.concat(out, ignore_index=True)
+
 def build_features(df):
     """Create robust features for anomaly detection from uniformly-sampled telemetry."""
     out = df.copy()
