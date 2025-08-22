@@ -110,3 +110,56 @@ def inject_faults(df, fault="MGUK_DROP", magnitude=0.10, lag_seconds=0.2, sector
 
     sim["FaultTag"] = fault
     return sim
+
+def make_injected_dataset(
+    df_test: pd.DataFrame,
+    n_laps: int = 12,
+    faults=("MGUK_DROP", "THROTTLE_LAG"),
+    magnitudes=(0.05, 0.10, 0.15),
+    lags=(0.1, 0.2, 0.3),
+    sector_strategy="random",   # "random" | "all"
+    random_state: int = 42
+) -> pd.DataFrame:
+    """Create a richer injected set by applying multiple faults across multiple laps."""
+    rng = np.random.default_rng(random_state)
+
+    laps = sorted(pd.unique(df_test.get("LapNumber", pd.Series([])).dropna()))
+    if not laps:
+        # fall back: use the whole df if LapNumber missing
+        base_laps = [None]
+    else:
+        rng.shuffle(laps)
+        base_laps = laps[:min(n_laps, len(laps))]
+
+    blocks = []
+    for lap in base_laps:
+        lap_df = df_test if lap is None else df_test[df_test["LapNumber"] == lap].reset_index(drop=True)
+
+        # choose sector filter
+        if "SectorID" in lap_df and sector_strategy == "random":
+            sec = int(rng.choice(pd.unique(lap_df["SectorID"].dropna())))
+            sec_filter = {sec}
+        elif "SectorID" in lap_df and sector_strategy == "all":
+            sec_filter = set(pd.unique(lap_df["SectorID"].dropna()))
+        else:
+            sec_filter = None  # apply everywhere
+
+        for f in faults:
+            if f == "MGUK_DROP":
+                for m in magnitudes:
+                    inj = inject_faults(lap_df, fault="MGUK_DROP", magnitude=m, sector_filter=sec_filter)
+                    inj = inj.assign(Variant=f"MGUK_{int(m*100)}")
+                    blocks.append(inj)
+            elif f == "THROTTLE_LAG":
+                for lg in lags:
+                    inj = inject_faults(lap_df, fault="THROTTLE_LAG", lag_seconds=lg, sector_filter=sec_filter)
+                    inj = inj.assign(Variant=f"THLAG_{lg:.1f}s")
+                    blocks.append(inj)
+            elif f == "ERS_UNDERDELIVERY":
+                for m in magnitudes:
+                    inj = inject_faults(lap_df, fault="ERS_UNDERDELIVERY", magnitude=m, sector_filter=sec_filter)
+                    inj = inj.assign(Variant=f"ERS_{int(m*100)}")
+                    blocks.append(inj)
+
+    return pd.concat(blocks, ignore_index=True) if blocks else pd.DataFrame()
+
