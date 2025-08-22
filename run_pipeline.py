@@ -52,7 +52,7 @@ def main():
     # 4) Launch Streamlit dashboard (runs in background)
     launch_streamlit("app_streamlit_ml.py")
 
-    print("\n✅ Pipeline complete!")
+    print("\nPipeline complete!")
     print("   • Plots have been opened in your image viewer.")
     print("   • Dashboard is running — check the Streamlit console for the local URL.")
 
