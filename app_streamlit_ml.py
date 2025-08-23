@@ -8,7 +8,7 @@ CFG = yaml.safe_load(open("config.yaml", "r"))
 SEASON = CFG["season"]; OUT_DIR = CFG["out_dir"]; EVENTS = CFG["events"]
 DEFAULT_DRIVER = "VER"  # Max Verstappen by default
 
-st.set_page_config(page_title="F1 Telemetry Anomaly Detection — Max Verstappen (VER)", layout="wide")
+st.set_page_config(page_title="F1 Telemetry Anomaly Detection — Max Verstappen (VER)", layout="wide", initial_sidebar_state="collapsed")
 
 st.markdown("""
 <style>
