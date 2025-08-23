@@ -9,30 +9,38 @@ SEASON = CFG["season"]; OUT_DIR = CFG["out_dir"]; EVENTS = CFG["events"]
 DEFAULT_DRIVER = "VER"  # Max Verstappen by default
 
 st.set_page_config(page_title="F1 Telemetry Anomaly Detection — Max Verstappen (VER)", layout="wide")
-# Make the sidebar narrow (responsive) – place near the top of app_streamlit_ml.py
+
 st.markdown("""
 <style>
-/* Use a responsive width: min 220px, ~18% of viewport, cap at 300px */
-:root { --sbw: clamp(220px, 18vw, 300px); }
+:root { --sbw: clamp(220px, 18vw, 300px); }  /* responsive target width */
 
-/* Sidebar container */
-[data-testid="stSidebar"] {
+/* Only apply width when the sidebar is expanded */
+[data-testid="stSidebar"][aria-expanded="true"] {
   width: var(--sbw) !important;
   min-width: var(--sbw) !important;
   max-width: var(--sbw) !important;
 }
 
-/* Optional: tighten inner padding a bit */
+/* When collapsed, make it truly zero-width so the main area fills 100% */
+[data-testid="stSidebar"][aria-expanded="false"] {
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+  transform: translateX(-100%);  /* hide the off-canvas panel */
+}
+
+/* Optional: a little tighter padding inside the sidebar */
 [data-testid="stSidebar"] > div {
   padding-right: 10px;
 }
 
-/* Make the main area take the rest of the space cleanly */
-[data-testid="stSidebar"] + section {
-  flex: 1 1 auto;
+/* (Optional) narrower target on small iframes */
+@media (max-width: 900px) {
+  :root { --sbw: 240px; }
 }
 </style>
 """, unsafe_allow_html=True)
+
 
 
 RB_NAVY = "#001F3F"; RB_RED = "#D0021B"; RB_YELL = "#FFCC00"; RB_BLUE = "#4A90E2"
