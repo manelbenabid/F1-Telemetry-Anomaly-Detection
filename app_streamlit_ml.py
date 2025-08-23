@@ -9,6 +9,31 @@ SEASON = CFG["season"]; OUT_DIR = CFG["out_dir"]; EVENTS = CFG["events"]
 DEFAULT_DRIVER = "VER"  # Max Verstappen by default
 
 st.set_page_config(page_title="F1 Telemetry Anomaly Detection — Max Verstappen (VER)", layout="wide")
+# Make the sidebar narrow (responsive) – place near the top of app_streamlit_ml.py
+st.markdown("""
+<style>
+/* Use a responsive width: min 220px, ~18% of viewport, cap at 300px */
+:root { --sbw: clamp(220px, 18vw, 300px); }
+
+/* Sidebar container */
+[data-testid="stSidebar"] {
+  width: var(--sbw) !important;
+  min-width: var(--sbw) !important;
+  max-width: var(--sbw) !important;
+}
+
+/* Optional: tighten inner padding a bit */
+[data-testid="stSidebar"] > div {
+  padding-right: 10px;
+}
+
+/* Make the main area take the rest of the space cleanly */
+[data-testid="stSidebar"] + section {
+  flex: 1 1 auto;
+}
+</style>
+""", unsafe_allow_html=True)
+
 
 RB_NAVY = "#001F3F"; RB_RED = "#D0021B"; RB_YELL = "#FFCC00"; RB_BLUE = "#4A90E2"
 st.markdown(
