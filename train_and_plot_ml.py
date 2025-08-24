@@ -7,12 +7,10 @@ import pandas as pd
 from sklearn.ensemble import IsolationForest
 
 from utils_ml import (
-    inject_faults,
-    make_injected_dataset,     # richer injected set
-    build_features,            # recompute features after injection
+    make_injected_dataset,     
+    build_features,            
 )
 
-# ---------- Config ----------
 CFG = yaml.safe_load(open("config.yaml", "r"))
 SEASON, DRIVER = CFG["season"], CFG["driver"]
 EVENTS = CFG["events"]
@@ -36,13 +34,13 @@ def savefig(path: str):
 def open_file(path: str):
     try:
         if sys.platform.startswith("win"):
-            os.startfile(path)  # type: ignore[attr-defined]
+            os.startfile(path)  
         elif sys.platform == "darwin":
             import subprocess; subprocess.Popen(["open", path])
         else:
             import subprocess; subprocess.Popen(["xdg-open", path])
     except Exception as e:
-        print(f"[warn] Could not auto-open '{path}': {e}")
+        print(f"Warn: Could not auto-open '{path}': {e}")
 
 def agg_scores(df: pd.DataFrame) -> pd.DataFrame:
     g = df.groupby(["LapNumber","SectorID"], dropna=False)["IF_score"].mean().reset_index()
@@ -50,10 +48,11 @@ def agg_scores(df: pd.DataFrame) -> pd.DataFrame:
 
 def refit_zscores_against_ref(target: pd.DataFrame, ref: pd.DataFrame, features_z: list, by: str = "SectorID") -> pd.DataFrame:
     """
-    Return a copy of `target` where each *_z in features_z is recomputed using means/stds
-    from `ref` grouped by `by`. Expects the corresponding base feature (e.g., Speed for Speed_z)
-    to exist in BOTH frames.
+    Return a copy of `target` with each `*_z` recomputed using per-`by` means/stds
+    taken from `ref`. The matching base columns (e.g. `Speed` for `Speed_z`)
+    must exist in both `target` and `ref`.
     """
+
     out = target.copy()
     if by not in out.columns or by not in ref.columns:
         return out
@@ -78,7 +77,7 @@ def refit_zscores_against_ref(target: pd.DataFrame, ref: pd.DataFrame, features_
 if not EVENTS:
     raise SystemExit("No events in config.yaml")
 
-# ----- 1) Fit baseline model on first event -----
+# 1.Fit baseline model on first event 
 baseline_ev = EVENTS[0]
 print(f"[info] Baseline event: {baseline_ev}")
 df_base = load_feats(baseline_ev)
@@ -94,12 +93,12 @@ iso = IsolationForest(
 df_base["IF_score"] = -iso.score_samples(X_base)  # higher = more anomalous
 base_thr_98 = np.percentile(df_base["IF_score"], 98)
 
-# ----- 2) For EVERY event (including baseline): write test + injected + plots -----
+# 2. for every event (including baseline): write test + injected + plots 
 for ev in EVENTS:
     print(f"[info] Processing event: {ev}")
     evd = ev_dir(ev); os.makedirs(evd, exist_ok=True)
 
-    # 2a) Load & score TEST (real telemetry for this event)
+    # 2a. load and score TEST (real telemetry for this event)
     if ev == baseline_ev:
         df_ev = df_base.copy()
     else:
@@ -107,10 +106,10 @@ for ev in EVENTS:
         X_ev = df_ev[FEATURES].fillna(0.0).values
         df_ev["IF_score"] = -iso.score_samples(X_ev)
 
-    # Save TEST event scores (for dashboard)
+    # save TEST event scores (for dashboard)
     agg_scores(df_ev).to_csv(os.path.join(evd, f"{DRIVER}_if_scores_test.csv"), index=False)
 
-    # 2b) Build a RICH injected dataset for this event (evaluation only)
+    # 2b. Build an injected dataset for this event (evaluation only)
     inj_all = make_injected_dataset(
         df_ev,
         n_laps=12,
@@ -125,13 +124,13 @@ for ev in EVENTS:
         print(f"[warn] No injected samples produced for {ev}. Skipping injected scoring/plots.")
         continue
 
-    # 2c) Recompute features AFTER injection so changes matter
+    # 2c. Recompute features AFTER injection so changes matter
     inj_all = build_features(inj_all)
 
-    # 2d) Recompute *_z features on injected data using TEST event as reference
+    # 2d. Recompute *_z features on injected data using TEST event as reference
     inj_all = refit_zscores_against_ref(inj_all, df_ev, FEATURES, by="SectorID")
 
-    # 2e) Score injected with the trained Isolation Forest
+    # 2e. Score injected with the trained Isolation Forest
     X_inj = inj_all[FEATURES].fillna(0.0).values
     inj_all["IF_score"] = -iso.score_samples(X_inj)
 
@@ -146,7 +145,7 @@ for ev in EVENTS:
     # Save aggregated injected scores (for dashboard)
     agg_scores(inj_all).to_csv(os.path.join(evd, f"{DRIVER}_if_scores_injected.csv"), index=False)
 
-    # 2f) Simple detection metric vs baseline tail
+    # 2f. Simple detection metric vs baseline tail
     hit_rate = float((inj_all["IF_score"] >= base_thr_98).mean() * 100.0)
     metrics = {
         "event": ev,
@@ -160,7 +159,7 @@ for ev in EVENTS:
         json.dump(metrics, f, indent=2)
     print(f"[eval] {ev}: {hit_rate:.1f}% of injected samples exceed the baseline 98th-percentile IF.")
 
-    # 2g) Plots for this event (and auto-open)
+    # 2g. Plots for this event 
     paths = []
 
     # Distribution: baseline vs test vs injected + baseline 98th pct line
@@ -190,7 +189,7 @@ for ev in EVENTS:
         p2 = os.path.join(evd, "if_sector_delta_bar.png")
         savefig(p2); paths.append(p2)
 
-    # Lap trace example (pick a common/full lap from TEST)
+    # Lap trace example
     lap_pick = None
     if "LapNumber" in df_ev and not df_ev["LapNumber"].dropna().empty:
         lap_pick = int(df_ev["LapNumber"].mode().iloc[0])
