@@ -12,29 +12,28 @@ st.set_page_config(page_title="F1 Telemetry Anomaly Detection — Max Verstappen
 
 st.markdown("""
 <style>
-:root { --sbw: clamp(220px, 18vw, 300px); }  /* responsive target width */
+:root { --sbw: clamp(220px, 18vw, 300px); }  
 
-/* Only apply width when the sidebar is expanded */
+
 [data-testid="stSidebar"][aria-expanded="true"] {
   width: var(--sbw) !important;
   min-width: var(--sbw) !important;
   max-width: var(--sbw) !important;
 }
 
-/* When collapsed, make it truly zero-width so the main area fills 100% */
+
 [data-testid="stSidebar"][aria-expanded="false"] {
   width: 0 !important;
   min-width: 0 !important;
   max-width: 0 !important;
-  transform: translateX(-100%);  /* hide the off-canvas panel */
+  transform: translateX(-100%);  
 }
 
-/* Optional: a little tighter padding inside the sidebar */
+
 [data-testid="stSidebar"] > div {
   padding-right: 10px;
 }
 
-/* (Optional) narrower target on small iframes */
 @media (max-width: 900px) {
   :root { --sbw: 240px; }
 }
@@ -62,7 +61,7 @@ st.caption("Driver: **Max Verstappen (VER)**")
 with st.sidebar:
     st.header("Controls")
     event = st.selectbox("Event", EVENTS, index=min(1, len(EVENTS)-1))
-    # Driver is fixed to VER for this tailored build, but we'll show it for clarity
+    # Driver is fixed to VER 
     st.text_input("Driver code", DEFAULT_DRIVER, disabled=True, help="Tailored build for Max Verstappen (VER).")
 
 def ev_dir(ev: str) -> str:
@@ -202,7 +201,6 @@ with tab_lap:
                 )
                 fig_i.update_traces(mode="lines+markers", marker=dict(size=4))
             else:
-                # avoid lines connecting different variants
                 fig_i = px.scatter(
                     sub_i.sort_values(["Variant","t_s"]),
                     x="t_s", y="Speed", color="Variant",
@@ -213,7 +211,7 @@ with tab_lap:
 
             c2.plotly_chart(fig_i, use_container_width=True)
 
-            # Optional throttle overlay (test)
+            # throttle overlay (test)
             if "Throttle01" in sub_t.columns:
                 fig_th = px.line(sub_t, x="t_s", y="Throttle01",
                                  template="plotly_dark", title="Throttle (0–1) — VER (Test)")
