@@ -16,7 +16,6 @@ def run_script(script_name):
 
 def launch_streamlit(app_path="app_streamlit_ml.py"):
     print("\nStarting Streamlit dashboard...\n" + "-"*60)
-    # Use `python -m streamlit run` to avoid PATH issues
     try:
         proc = subprocess.Popen([sys.executable, "-m", "streamlit", "run", app_path])
         print("Streamlit launched. If a browser didn't open automatically, visit the URL shown in the console.")
@@ -28,7 +27,7 @@ def launch_streamlit(app_path="app_streamlit_ml.py"):
 def main():
     cfg_path = "config.yaml"
     if not os.path.exists(cfg_path):
-        print("Missing config.yaml! Cannot run pipeline.")
+        print("Missing config.yaml. Cannot run pipeline.")
         sys.exit(1)
 
     cfg = yaml.safe_load(open(cfg_path))
@@ -40,21 +39,21 @@ def main():
     print(f"   Driver   : {driver}")
     print("-"*60)
 
-    # 1) Extract telemetry
+    # Extract telemetry
     run_script("extract_telemetry_ml.py")
 
-    # 2) Preprocess & feature engineering
+    # Preprocess & feature engineering
     run_script("preprocess_features_ml.py")
 
-    # 3) Train & plot (this saves PNGs and opens them in your OS viewer; it does NOT block)
+    # Train & plot
     run_script("train_and_plot_ml.py")
 
-    # 4) Launch Streamlit dashboard (runs in background)
+    # Launch Streamlit dashboard 
     launch_streamlit("app_streamlit_ml.py")
 
     print("\nPipeline complete!")
-    print("   • Plots have been opened in your image viewer.")
-    print("   • Dashboard is running — check the Streamlit console for the local URL.")
+    print("Plots have been opened in image viewer.")
+    print("Dashboard is running")
 
 if __name__ == "__main__":
     main()
