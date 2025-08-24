@@ -44,7 +44,7 @@ for ev in EVENTS:
     FEATURE_LIST = [c for c in ["Speed","RPM","Throttle01","Brake01","Accel","dRPM_dt","dThrottle_dt","dBrake_dt"] if c in feats.columns]
     feats_z = sectorwise_zscore(feats, FEATURE_LIST, by=["SectorID"])
 
-    # save
+    # saving features
     outp = os.path.join(ev_dir, f"{DRIVER}_telemetry_features.parquet")
     feats_z.to_parquet(outp)
     print(f"Saved features -> {outp}")
