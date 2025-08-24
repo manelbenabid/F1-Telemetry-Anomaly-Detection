@@ -26,7 +26,7 @@ for ev in EVENTS:
             car = lap.get_car_data().add_distance()
             car["LapNumber"] = lap["LapNumber"]
             car["Driver"] = DRIVER
-            # keep common telemetry channels if available
+            # keeping the common telemetry channels if available
             keep = [c for c in ["Time","Speed","RPM","Throttle","Brake","nGear","DRS","ERSDeployMode","Distance","LapNumber","Driver"] if c in car.columns or c in ["LapNumber","Driver"]]
             car = car[keep]
             car = car.rename(columns={"nGear":"Gear"})
