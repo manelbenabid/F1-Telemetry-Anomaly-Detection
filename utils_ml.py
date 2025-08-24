@@ -32,7 +32,7 @@ def sectorize_equal_distance(df, n_sectors=3):
 
 def sectorize_per_lap(df: pd.DataFrame, n_sectors: int = 3) -> pd.DataFrame:
     """
-    Label sectors 1..n per *lap* using Distance within that lap.
+    Label sectors 1..n per lap using Distance within that lap.
     Requires columns: LapNumber, Distance.
     """
     if not {"LapNumber", "Distance"}.issubset(df.columns):
@@ -49,7 +49,7 @@ def sectorize_per_lap(df: pd.DataFrame, n_sectors: int = 3) -> pd.DataFrame:
             g["SectorID"] = pd.cut(
                 frac,
                 bins=np.linspace(0, 1, n_sectors + 1),
-                labels=range(1, n_sectors + 1),  # -> 1,2,3
+                labels=range(1, n_sectors + 1),  
                 include_lowest=True
             ).astype(int)
         out.append(g)
@@ -72,7 +72,7 @@ def build_features(df):
     if {"t_s","Brake01"}.issubset(out.columns):
         out["dBrake_dt"] = np.gradient(out["Brake01"].values, out["t_s"].values)
 
-    # Rolling stats (short window) to capture micro-behavior
+    # Rolling stats to capture micro-behavior
     for c in [c for c in ["Speed","RPM","Accel","Throttle01","Brake01"] if c in out]:
         out[c+"_rollmean"] = out[c].rolling(10, min_periods=3).mean()
         out[c+"_rollstd"]  = out[c].rolling(10, min_periods=3).std()
@@ -120,12 +120,12 @@ def make_injected_dataset(
     sector_strategy="random",   # "random" | "all"
     random_state: int = 42
 ) -> pd.DataFrame:
-    """Create a richer injected set by applying multiple faults across multiple laps."""
+    """Create an injected set by applying multiple faults across multiple laps."""
     rng = np.random.default_rng(random_state)
 
     laps = sorted(pd.unique(df_test.get("LapNumber", pd.Series([])).dropna()))
     if not laps:
-        # fall back: use the whole df if LapNumber missing
+        # use the whole df if LapNumber missing
         base_laps = [None]
     else:
         rng.shuffle(laps)
